@@ -1,0 +1,388 @@
+var UserManage = function() {
+	this._settings = {
+		num:30,
+		count:0,
+		newAccount : null,
+		newRoleId : null,
+		clickNum : "",
+		columnName : "",
+		keyword : "",
+	}
+	this.init();
+	this.keyPress();
+};
+
+UserManage.prototype = {
+	// 初始化
+	init : function() {
+		var that = this;
+		$(".a3").removeClass("active");
+		$("#productKey").hide();
+		$("#searchUserText").val("");
+		$("#userManageList").html("");
+		$(".addUserName").closest(".userList-line").remove();
+		that.clearStatus();
+		that.getUserList();
+	},
+	// 查询用户列表
+	getUserList : function() {
+		var that = this;
+		var userList;
+		$.ajax({
+			type : "post",
+			url : root + "/userRoleManage!getUserList.action",
+			data : {
+				productId : productId,
+				keyword : that._settings.keyword,
+				clickNum : that._settings.clickNum,
+				columnName : that._settings.columnName,
+				timestamp : new Date().getTime()
+			},
+			async : false,
+			dataType : 'json',
+			success : function(result) {
+				console.log(result);
+				userList = result.data;
+				that._settings.count = userList.length;
+				that.createUserList(userList);
+			}
+		});
+	},
+	// 创建用户列表
+	createUserList : function(userList) {
+		var that = this;
+		var html = "";
+		var length;
+		if (that._settings.count > that._settings.num) {
+			length = that._settings.num;
+		} else {
+			length = that._settings.count;
+		}
+		var list = [];
+		for (var i = that._settings.num - 30; i < length; i++) {
+			list.push(userList[i]);
+		}
+		html = Handlebars.templates.userManageList({userList : list});
+		$(html).appendTo($("#userManageList"));
+		that.bindEvents();
+	},
+	initAddUserLine : function() {
+		var that = this;
+		var html = Handlebars.templates.addUserManage();
+		$("#userManageList").prepend(html);
+		that.bindEvents();
+	},
+	
+	bindEvents : function() {
+		var that = this;
+		// 切换产品版本查询用户列表
+		$("#productKey>li").unbind("click").bind("click",function(e) {
+			$(this).addClass("selected");
+			$(this).siblings().removeClass("selected");
+			$("#productKey").hide();
+			$("#productKey").siblings(".dropListInput").val($(this).text());
+			$(this).closest(".a3").removeClass("active");
+			$("#userManageList").html("");
+			productId = $(this).val();
+			$("#searchUserText").val("");
+			that._settings.keyword = "";
+			that.clearStatus();
+			that.getUserList();
+			return false;
+		});
+		$("#productKey").closest(".a3").unbind("click").bind("click",function(){
+			$(this).toggleClass("active");
+			$("#productKey").toggle();
+		});
+		// 添加用户
+		$("#addUserManage").unbind("click").bind("click",function(){
+			that.hideAllInput();
+			if($(".addUserName").closest(".userList-line").length != 0) {
+				return;
+			}
+			that.initAddUserLine();
+		});
+		// 添加用户-选择用户名
+		$(".userInfo").unbind("click").bind("click",function(e){
+			var account = $(this).attr("data-account");
+			$(this).closest(".userList-userDiv").find(".addUserName").val($(this).text());
+			$(this).closest(".userList-userDiv").find(".addUserName").attr("data-account",account);
+			var roleId = $(this).closest(".userList-line").find("option:selected").val();
+			that.addUserRole(account, roleId);
+			$(this).closest(".searchList").hide();
+		});
+		// 更新用户-选择用户角色
+		$(".userList-select").unbind("change").bind("change",function(e) {
+			var roleId = $(this).val();
+			var perRoleId = $(this).closest(".userList-select").attr("data-roleId");
+			var account = $(this).closest(".userList-line").find("input").attr("data-account");
+			if(account != null && account.length > 0 && roleId != null && roleId.length > 0) {
+				that.updateUserRole(account, roleId, perRoleId);
+				$(this).closest(".userList-select").attr("data-roleId",roleId);
+			}
+			
+		});
+		$(".userList-userDiv").unbind("click").bind("click",function(e) {
+			that.hideAllInput();
+		});
+		// 根据姓名/工号查询用户
+		$("#btn-searchByUser").unbind("click").bind("click",function(e) {
+			$("#userManageList").html("");
+			var val = $("#searchUserText").val();
+			if (val != null && val != "") {
+				$("#searchUserDelete").show();
+			}
+			that._settings.keyword = val;
+			that.getUserList();
+		});
+		// 回车查询用户
+		$("#searchUserText").unbind("keyup").bind("keyup",function(e){
+			if (e.keyCode==13) {
+				$("#userManageList").html("");
+				var val = $("#searchUserText").val();
+				if (val != null && val != "") {
+					$("#searchUserDelete").show();
+				}
+				that._settings.keyword = val;
+				that.getUserList();
+			}
+		});
+		// 删除用户
+		$(".userList-line .delete").unbind("click").bind("click",function(e) {
+			that.hideAllInput();
+			$(".td-div-other").find(".msg-div").hide();
+			var account = $(this).closest(".userList-line").find("input").attr("data-account");
+			var name = $(this).closest(".userList-line").find("input").val();
+			var roleId = $(this).closest(".userList-line").find("option:selected").val();
+			$(this).closest(".td-div-other").find(".msg-div").show();
+			$(".span-left").unbind("click").bind("click",function(e) {
+				if (account == "") {
+					$(this).closest(".userList-line").find("input").val("");
+					$(this).closest(".userList-line").remove();
+				} else {
+					$.ajax({
+						type : "post",
+						url : root + "/userRoleManage!deleteUserRole.action",
+						data : {
+							account : account,
+							productId : productId,
+							roleId : roleId,
+							timestamp : new Date().getTime()
+						},
+						async : false,
+						dataType : 'json',
+						success : function(result) {
+							console.log(result);
+							if (!result.isSuccess) {
+								$("#myModal").show();
+								$("#myModal").modal({
+									keyboard: true
+								});
+								$("#message").text(result.msg);
+							}
+						}
+					});
+					$(this).closest(".userList-line").remove();
+				}
+				return false;
+			});
+			$(".span-right").unbind("click").bind("click",function(e) {
+				$(this).closest(".td-div-other").find(".msg-div").hide();
+				return false;
+			});
+		});
+		// 清空用户查询输入框
+		$("#searchUserDelete").unbind("click").bind("click",function(e) {
+			$("#searchUserText").val("");
+			$("#searchUserDelete").hide();
+			that._settings.keyword = "";
+		});
+		// 点击title排序
+		$("#userList-title .order").unbind("click").bind("click",function(e) {
+			that.hideAllInput();
+			var columnName = $(this).find("span").attr("name");
+			var orderBy = $(this).find("span").text();
+			var clickNum = "";
+			if (orderBy == "normal") {
+				$(this).closest("#userList-title").find("span").text("normal");
+				$(this).closest("#userList-title").find(".sort-normal").show();
+				$(this).closest("#userList-title").find(".sort-desc").hide();
+				$(this).closest("#userList-title").find(".sort-asc").hide();
+				$(this).find("span").text("desc");
+				$(this).find(".sort-normal").hide();
+				$(this).find(".sort-desc").show();
+				clickNum = "1";
+			} else {
+				if (orderBy == "desc") {
+					$(this).find("span").text("asc");
+					$(this).find(".sort-desc").hide();
+					$(this).find(".sort-asc").show();
+					clickNum = "2";
+				} else if (orderBy == "asc") {
+					$(this).find("span").text("desc");
+					$(this).find(".sort-desc").show();
+					$(this).find(".sort-asc").hide();
+					clickNum = "1";
+				}
+			}
+			that._settings.clickNum = clickNum;
+			that._settings.columnName = columnName;
+			$("#userManageList").html("");
+			that._settings.num = 30;
+			that.getUserList();
+		});
+		// 滚动获取数据
+		$(window).scroll(function(){
+			if ($("#userDiv").css("display") == "block") {
+				var windowHeight = $(window).height();
+				var documentHeight = $(document).height();
+				var nScrollTop = $(window).scrollTop();
+				if (documentHeight - windowHeight <= nScrollTop) {
+					if (that._settings.count > that._settings.num) {
+						that._settings.num = that._settings.num + 30;
+						that.getUserList();
+					}
+				}
+			}
+		});
+	},
+	// 根据关键字查询
+	keyPress : function() {
+		var that = this;
+		$(document).on("keyup",".addUserName",function(e){
+			that.searchUserByKeyword(e);
+
+		}).on("click", ".addUserName", function(e) {
+			that.hideAllInput();
+			that.searchUserByKeyword(e);
+		});
+	},
+	searchUserByKeyword: function(e) {
+		var that = this;
+		
+		var $keyword = e.target.value;
+		if ($keyword == null || $keyword.length < 2) {
+			return;
+		}
+		
+		if (that.searchUserTimeoutId) {
+			clearTimeout(that.searchUserTimeoutId);
+		}
+		
+		that.searchUserTimeoutId = setTimeout(function() {
+			that.searchUserTimeoutId = null;
+			that.searchUser($keyword).then(function(data) {
+				that.createSearchList(e.target, data);
+			});
+		}, 200);
+	},
+	// 根据关键字查询-用户列表
+	searchUser : function($keyword){
+		var that = this;
+		return $.ajax({
+			type : "post",
+			url : root + "/userRoleManage!getUserByKeyword.action",
+			data : {
+				keyword : $keyword,
+				productId : productId,
+				timestamp : new Date().getTime()
+			},
+			async : true,
+			dataType :'json'
+		}).then(function(result) {
+			return userList = result.data;
+		});
+	},
+	// 根据关键字查询-创建查询结果列表
+	createSearchList : function(root,data) {
+		if (data != "" && data != null) {
+			var that = this;
+			var $root = $(root).closest("div").find(".searchList").show().empty();
+			var html = "";
+			$(data).each(function(index,value){
+				html += "<div class='userInfo' data-account='"+value.account+"'>"+(value.name||"")+value.account+"&nbsp;&nbsp;&nbsp;&nbsp;"+(value.dept||"")+"</div>";
+			});
+			$(html).appendTo($root);
+			that.bindEvents();
+		}
+	},
+	// 添加用户角色
+	addUserRole : function(account, roleId) {
+		var that = this;
+		$.ajax({
+			type : "post",
+			url : root + "/userRoleManage!addUserRole.action",
+			data : {
+				account : account,
+				roleId : roleId,
+				productId : productId,
+				timestamp : new Date().getTime()
+			},
+			async : false,
+			dataType : 'json',
+			success : function(result) {
+				console.log(result);
+				if (!result.isSuccess) {
+					$(".addUserName").closest(".userList-line").remove();
+					$("#myModal").show();
+					$("#myModal").modal({
+						keyboard: true
+					});
+					$("#message").text(result.msg);
+				}else{
+					$(".addUserName").attr("readonly","readonly");
+				    $(".addUserName").siblings(".searchList").remove();
+				    $(".addUserName").closest(".userList-line").find(".userList-select").attr("data-roleId",roleId);
+					$(".addUserName").removeClass("addUserName");
+				}
+			}
+		});
+	},
+	// 更新用户角色
+	updateUserRole : function(account, roleId, perRoleId) {
+		var that = this;
+		$.ajax({
+			type : "post",
+			url : root + "/userRoleManage!updateUserRole.action",
+			data : {
+				account : account,
+				roleId : roleId,
+				perRoleId : perRoleId,
+				productId : productId,
+				timestamp : new Date().getTime()
+			},
+			async : false,
+			dataType : 'json',
+			success : function(result) {
+				console.log(result);
+				if (!result.isSuccess) {
+					$("#myModal").show();
+					$("#myModal").modal({
+						keyboard: true
+					});
+					$("#message").text(result.msg);
+//					$("#userManageList").html("");
+//					that.getUserList();
+				}
+			}
+		});
+	},
+	hideAllInput: function() {
+	    $('.searchList').hide();
+	    $(".userList-select option").hide();
+	    $(".userList-select option").show();
+        $(".td-div-other").find(".msg-div").hide();
+        $("#searchUserText").val("");
+	},
+	// 初始化页面状态
+	clearStatus : function() {
+		var that = this;
+		$("#userList-title").find("span").text("normal");
+		$("#userList-title").find(".sort-normal").show();
+		$("#userList-title").find(".sort-desc").hide();
+		$("#userList-title").find(".sort-asc").hide();
+		that._settings.num = 30;
+		that._settings.clickNum = "";
+		that._settings.columnName = "";
+	},
+};
