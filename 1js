@@ -1,0 +1,560 @@
+
+var ProjectManage = function(){
+	this._settings = {
+		projectCode:null,
+		type:'all',
+		name:'',
+		num:30,
+		count:0,
+		clickNum:"",
+		columnName:"",
+	};
+	this.init();
+	this.keyPress();
+};
+
+ProjectManage.prototype = {
+	//初始化
+	init : function() {
+		var that = this;
+		$(".a3").removeClass("active");
+		$("#productKey").hide();
+		$("#search-text").val("");
+		$("#projectList").html("");
+		that.clearStatus();
+		that.initProjectCount();
+		that.bindEvents();
+	},
+	//查询项目统计
+	initProjectCount : function() {
+		var that = this;
+		var projectObject = null;
+		$.ajax({
+			type : "GET",
+			url : root + "/manage!getProjectList.action",
+			async : false,
+			dataType :'json',
+			data : {
+				productId : productId,
+				name : this._settings.name,
+				clickNum : this._settings.clickNum,
+				columnName : this._settings.columnName,
+			},
+			success : function(result) {
+				if (result && result.isSuccess) {
+					projectObject = result.data;
+					$("#All").text(projectObject.all.length);
+					$("#NoShare").text(projectObject.noShare.length);
+					$("#IsShare").text(projectObject.isShare.length);
+				}
+			}
+		});
+		that.initProjectList();
+	},
+	//查询项目列表
+	initProjectList : function() {
+		var that = this;
+		var projectObject = null;
+		$.ajax({
+			type : "GET",
+			url : root + "/manage!getProjectList.action",
+			async : false,
+			dataType :'json',
+			data : {
+				productId : productId,
+				name : this._settings.name,
+				clickNum : this._settings.clickNum,
+				columnName : this._settings.columnName,
+			},
+			success : function(result) {
+				if (result && result.isSuccess) {
+					projectObject = result.data;
+					that._settings.count = projectObject[that._settings.type].length;
+					that.createProjectList(projectObject[that._settings.type]);
+				}
+			}
+		});
+	},
+	createProjectList : function(projectList){
+		var that = this;
+		var html = "";
+		var length;
+		if (that._settings.count > that._settings.num) {
+			length = that._settings.num;
+		} else {
+			length = that._settings.count;
+		}
+		var list = [];
+		for (var i = that._settings.num - 30; i < length; i++) {
+			var value = projectList[i];
+			var createTime = that.formatTime(value.createTime);
+			value.createTime = createTime;
+			list.push(value);
+		}
+		html = Handlebars.templates.projectManageList({projectList : list});
+		$(html).appendTo($("#projectList"));
+		that.bindEvents();
+	},
+	bindEvents : function() {
+		var that = this;
+		//产品版本查询
+		$("#productKey li").unbind("click").bind("click",function(e) {
+			$(this).addClass("selected");
+			$(this).siblings().removeClass("selected");
+			$("#productKey").hide();
+			$("#productKey").siblings(".dropListInput").val($(this).text());
+			$(this).closest(".a3").removeClass("active");
+			$("#projectList").html("");
+			productId = $(this).val();
+			$("#search-text").val("");
+			that._settings.name = "";
+			that._settings.type = "all";
+			that.clearStatus();
+			that.initProjectCount();
+			return false;
+		});
+		$("#productKey").closest(".a3").unbind("click").bind("click",function(){
+			$(this).toggleClass("active");
+			$("#productKey").toggle();
+		});
+		//切换tab查询项目列表
+		$(".projectType").unbind("click").bind("click",function(e) {
+			if($(this).hasClass('projectType-active')) {
+		    	return;
+		    }
+			$(this).closest(".projectType-group").find(".projectType").removeClass('projectType-active');
+			$(this).addClass('projectType-active');
+			var type = $(this).attr("data-type");
+			that._settings.type = type;
+			that._settings.name = "";
+			$("#projectList").html("");
+			$("#search-text").val("");
+			that.clearStatus();
+			that.initProjectCount();
+		});
+		//项目名称查询
+		$("#btn-search").unbind("click").bind("click",function(e) {
+			$("#projectList").html("");
+			var val = $("#search-text").val();
+			if (val != null && val != "") {
+				$("#searchProjectDelete").show();
+			}
+			that._settings.name = val;
+			that.clearStatus();
+			that.initProjectList();
+		});
+		// 回车查询项目
+		$("#search-text").unbind("keyup").bind("keyup",function(e){
+			if (e.keyCode==13) {
+				$("#projectList").html("");
+				var val = $("#search-text").val();
+				if (val != null && val != "") {
+					$("#searchProjectDelete").show();
+				}
+				that._settings.name = val;
+				that.clearStatus();
+				that.initProjectList();
+			}
+		});
+		//清空项目查询输入框
+		$("#searchProjectDelete").unbind("click").bind("click",function(e) {
+			$("#search-text").val("");
+			$("#searchProjectDelete").hide();
+			that._settings.name = "";
+		});
+		//点击项目名进入预览
+		$(".edit").unbind("click").bind("click",function(e) {
+			var projectCode = $(this).closest(".projectList-line").attr("data-code");
+			type = "own";
+			pageCode = "";
+			var win = window.open(root+"/preview!show.action?projectCode="+projectCode+"&pageCode="+pageCode+"&type="+type+"&timestamp="+new Date().getTime(),"a");	
+			win.focus();
+		});
+		//删除项目
+		$(".delete").unbind("click").bind("click",function(e) {
+			var projectCode = $(this).closest(".projectList-line").attr("data-code");
+			$(".td-div-other").find(".msg-div").hide();
+			$(this).closest(".td-div-other").find(".msg-div").show();
+			$(".span-left").unbind("click").bind("click",function(e) {
+				$.ajax({
+					type : "post",
+					url: root + "/manage!deleteManageProject.action",
+					data: {
+						projectCode: projectCode,
+						productId : productId,
+					},
+					async : false,
+					dataType :'json',
+					success : function(result) {
+						if (!result.isSuccess) {
+							$("#myModal").show();
+							$("#myModal").modal({
+								keyboard: true
+							});
+							$("#message").text(result.msg);
+						}
+					}
+				});
+				that._settings.num = 30;
+				$("#projectList").html("");
+				that.initProjectCount();
+				return false;
+			});
+		});
+		//分享项目
+		$(".share").unbind("click").bind("click",function(e) {
+			var projectCode = $(this).closest(".projectList-line").attr("data-code");
+			$(".td-div-other").find(".msg-div").hide();
+			$(".td-div-other").find(".shareBox").hide();
+			that._settings.projectCode = projectCode;
+			$(this).closest(".td-div-other").find(".shareBox").show();
+			var shareLabel = "";
+			$(".closeImg").unbind("click").bind("click",function(e) {
+				$(this).closest(".shareBox").find(".tagList").html("");
+				$(this).closest(".shareBox").hide();
+				return false;
+			});
+			$(".addBtn").unbind("click").bind("click",function(e) {
+				var $input = $(this).closest(".shareBox").find(".inputText")[1];
+				var label = $.trim($input.value);
+				var $tagList = $(this).closest(".shareBox").find(".tagList");
+				if(label){
+					var $labels = $tagList.find("span");
+					var isRepeat = false;
+					for(var i = 0 ; i < $labels.length ; i++) {
+						if($.trim($labels[i].textContent) === label) {
+							isRepeat = true;
+							break;
+						}
+					}
+					if(!isRepeat) {
+						$("<div class='tagDiv'><span class='spanText'>"+ label +"</span><span class='removeTag'></span></div>").appendTo($tagList);
+					}
+					$input.value = "";
+				}
+			});
+			$(".tagDiv").unbind("click").bind("click",function(e) {
+				if ($(this).hasClass("selectedTag")) {
+					return;
+				} else {
+					$(this).closest('.tagList').find(".tagDiv").removeClass("selectedTag");
+					$(this).addClass("selectedTag");
+				}
+			});
+			$(".removeTag").unbind("click").bind("click",function(e) {
+				$(this).closest('.tagDiv').remove();
+			});
+			$(".footer").unbind("click").bind("click",function(e) {
+				var shareName = $(this).closest(".shareBox").find(".inputText")[0].value;
+				var $labels = $(this).closest(".shareBox").find(".tagList").find(".spanText");
+				var labelArray = [];
+				$($labels).each(function(i){
+					labelArray.push(this.textContent);
+				});
+				var shareLabel = labelArray.join(",");
+				$.ajax({
+					type : "GET",
+					url: root + "/manage!shareProject.action",
+					data: {
+						projectCode: projectCode,
+						shareName : shareName,
+						shareLabel : shareLabel,
+					},
+					async : true,
+					dataType :'json',
+					success : function(result) {
+						if (result && result.isSuccess) {
+							if (result.data === 'start') {
+								progress();
+							}
+						}else{
+							if(result.msg === "发布名称重复"){
+								alert("您分享的项目名称已存在，建议更换项目名称");
+								$thisLi.find(".js-projectName").focus().select();
+							}else{
+								alert(result.msg);
+							}
+							that._settings.num = 30;
+							$("#projectList").html("");
+							that.initProjectCount();
+						}
+					}
+				});
+				$(this).closest(".shareBox").find(".tagList").html("");
+				$(this).closest(".shareBox").hide();
+				return false;
+			});
+			function progress() {
+				$.ajax({
+					type : "GET",
+					url: root + "/projectShare!shareProgress.action",
+					data: {
+						code: projectCode,
+						timestamp: new Date().getTime()
+					},
+					async : true,
+					dataType :'json',
+					success : function(result) {
+						if (result && result.isSuccuss) {
+							if(result.progress<100){
+								progress();
+							}else{
+								that._settings.num = 30;
+								$("#projectList").html("");
+								that.initProjectCount();
+							}
+						} else {
+							console.log(result);
+							console.log("分享失败");
+							alert("分享失败，要分享的文件不存在或已经被分享！");
+							that._settings.num = 30;
+							$("#projectList").html("");
+							that.initProjectCount();
+						}
+					}
+				});
+			}
+		});
+		//取消分享
+		$(".cancelShare").unbind("click").bind("click",function(e) {
+			var projectCode = $(this).closest(".projectList-line").attr("data-code");
+			$(".td-div-other").find(".msg-div").hide();
+			$(this).closest(".td-div-other").find(".msg-div").show();
+			$(".span-left").unbind("click").bind("click",function(e) {
+				$.ajax({
+					type : "post",
+					url: root + "/manage!cancelShare.action",
+					data: {
+						projectCode: projectCode
+					},
+					async : false,
+					dataType :'json',
+					success : function(result) {
+						if (!result.isSuccess) {
+							alert(result.msg);
+						}
+					}
+				});
+				that._settings.num = 30;
+				$("#projectList").html("");
+				that.initProjectCount();
+				return false;
+			});
+		});
+		//项目设为精品
+		$(".setPerfect").unbind("click").bind("click",function(e) {
+			var projectCode = $(this).closest(".projectList-line").attr("data-code");
+			$(".td-div-other").find(".msg-div").hide();
+			$(this).closest(".td-div-other").find(".msg-div").show();
+			$(".span-left").unbind("click").bind("click",function(e) {
+				$.ajax({
+					type : "post",
+					url: root + "/manage!updateManageProjectPerfect.action",
+					data: {
+						projectCode: projectCode,
+						productId : productId,
+						type : "set"
+					},
+					async : false,
+					dataType :'json',
+					success : function(result) {
+						if (!result.isSuccess) {
+							alert(result.msg);
+						}
+					}
+				});
+				that._settings.num = 30;
+				$("#projectList").html("");
+				that.initProjectCount();
+				return false;
+			});
+		});
+		//项目取消精品
+		$(".cancelPerfect").unbind("click").bind("click",function(e) {
+			var projectCode = $(this).closest(".projectList-line").attr("data-code");
+			$(".td-div-other").find(".msg-div").hide();
+			$(this).closest(".td-div-other").find(".msg-div").show();
+			$(".span-left").unbind("click").bind("click",function(e) {
+				$.ajax({
+					type : "post",
+					url: root + "/manage!updateManageProjectPerfect.action",
+					data: {
+						projectCode : projectCode,
+						productId : productId,
+						type : "cancel"
+					},
+					async : false,
+					dataType :'json',
+					success : function(result) {
+						if (!result.isSuccess) {
+							alert(result.msg);
+						}
+					}
+				});
+				that._settings.num = 30;
+				$("#projectList").html("");
+				that.initProjectCount();
+				return false;
+			});
+		});
+		//取消
+		$(".span-right").unbind("click").bind("click",function(e) {
+			$(this).closest(".msg-div").hide();
+			return false;
+		});
+		//点击title排序
+		$("#projectList-title .order").unbind("click").bind("click",function(e) {
+			var columnName = $(this).find("span").attr("name");
+			var orderBy = $(this).find("span").text();
+			var clickNum = "";
+			if (orderBy == "normal") {
+				$(this).closest("#projectList-title").find("span").text("normal");
+				$(this).closest("#projectList-title").find(".sort-normal").show();
+				$(this).closest("#projectList-title").find(".sort-desc").hide();
+				$(this).closest("#projectList-title").find(".sort-asc").hide();
+				$(this).find("span").text("desc");
+				$(this).find(".sort-normal").hide();
+				$(this).find(".sort-desc").show();
+				clickNum = "1";
+			} else {
+				if (orderBy == "desc") {
+					$(this).find("span").text("asc");
+					$(this).find(".sort-desc").hide();
+					$(this).find(".sort-asc").show();
+					clickNum = "2";
+				} else if (orderBy == "asc") {
+					$(this).find("span").text("desc");
+					$(this).find(".sort-desc").show();
+					$(this).find(".sort-asc").hide();
+					clickNum = "1";
+				}
+			}
+			that._settings.clickNum = clickNum;
+			that._settings.columnName = columnName;
+			$("#projectList").html("");
+			that._settings.num = 30;
+			that.initProjectList();
+		});
+		//滚动获取数据
+		$(window).scroll(function(){
+			if ($("#projectDiv").css("display") == "block") {
+				var windowHeight = $(window).height();
+				var documentHeight = $(document).height();
+				var nScrollTop = $(window).scrollTop();
+				if (documentHeight - windowHeight <= nScrollTop) {
+					if (that._settings.count > that._settings.num) {
+						that._settings.num = that._settings.num + 30;
+						that.initProjectList();
+					}
+				}
+			}
+		});
+	},
+
+
+
+
+	// 根据关键字查询
+	keyPress : function() {
+		var that = this;
+		$(document).on("keyup",".projectList-userName",function(e){
+			that.searchUserByKeyword(e);
+
+		}).on("click", ".projectList-userName", function(e) {
+			that.hideAllInput();
+			that.searchUserByKeyword(e);
+		});
+	},
+	searchUserByKeyword: function(e) {
+		var that = this;
+		
+		var $keyword = e.target.value;
+		if ($keyword == null || $keyword.length < 2) {
+			return;
+		}
+		
+		if (that.searchUserTimeoutId) {
+			clearTimeout(that.searchUserTimeoutId);
+		}
+		
+		that.searchUserTimeoutId = setTimeout(function() {
+			that.searchUserTimeoutId = null;
+			that.searchUser($keyword).then(function(data) {
+				that.createSearchList(e.target, data);
+			});
+		}, 200);
+	},
+	// 根据关键字查询-用户列表
+	searchUser : function($keyword){
+		var that = this;
+		return $.ajax({
+			type : "post",
+			url : root + "/userRoleManage!getUserByKeyword.action",
+			data : {
+				keyword : $keyword,
+				productId : productId,
+				timestamp : new Date().getTime()
+			},
+			async : true,
+			dataType :'json'
+		}).then(function(result) {
+			return userList = result.data;
+		});
+	},
+	// 根据关键字查询-创建查询结果列表
+	createSearchList : function(root,data) {
+		if (data != "" && data != null) {
+			var that = this;
+			var $root = $(root).closest("div").find(".searchList").show().empty();
+			var html = "";
+			$(data).each(function(index,value){
+				html += "<div class='userInfo' data-account='"+value.account+"'>"+(value.name||"")+value.account+"&nbsp;&nbsp;&nbsp;&nbsp;"+(value.dept||"")+"</div>";
+			});
+			$(html).appendTo($root);
+			that.bindEvents();
+		}
+	},
+	hideAllInput: function() {
+	    $('.searchList').hide();
+	    $(".userList-select option").hide();
+	    $(".userList-select option").show();
+        $(".td-div-other").find(".msg-div").hide();
+        $("#searchUserText").val("");
+	},	
+
+
+
+
+	//初始化页面状态
+	clearStatus : function() {
+		var that = this;
+		$("#projectList-title").find("span").text("normal");
+		$("#projectList-title").find(".sort-normal").show();
+		$("#projectList-title").find(".sort-desc").hide();
+		$("#projectList-title").find(".sort-asc").hide();
+		that._settings.num = 30;
+		that._settings.clickNum = "";
+		that._settings.columnName = "";
+	},
+	//时间戳转换为字符串
+	formatTime : function(createTime) {
+		var that = this;
+		var timestamp = createTime.time;
+		var newDate = new Date();
+		newDate.setTime(timestamp);
+		var hours = that.fullTime(newDate.getHours());
+		var minutes = that.fullTime(newDate.getMinutes());
+		var year = newDate.getFullYear();
+		var month = that.fullTime(newDate.getMonth() + 1);
+		var date = that.fullTime(newDate.getDate());
+		var timeStr = hours + ":" + minutes + " " + year + "/" + month + "/" + date;
+		return timeStr;
+	},
+	//时间补位
+	fullTime : function(date) {
+		if (date < 10) {
+			date = "0" + date;
+		}
+		return date;
+	},
+};
