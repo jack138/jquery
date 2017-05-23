@@ -1,0 +1,909 @@
+<%@ page language="java" contentType="text/html; charset=utf-8"
+	pageEncoding="utf-8"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>管理中心</title>
+<link rel="shortcut icon" href="images/bg/favicon.ico" />
+<link href="css/bootstrap/bootstrap.css" rel="stylesheet"
+	type="text/css" />
+<link href="css/basic.css" rel="stylesheet" type="text/css" />
+<link href="css/common.css" rel="stylesheet" type="text/css" />
+<link href="css/bootstrap/bootstrap.css" rel="stylesheet"
+	type="text/css" />
+<link href="css/bootstrap/bootstrap-uilego.css" rel="stylesheet"
+	type="text/css" />
+<link href="css/superManager.css" rel="stylesheet" type="text/css" />
+<link href="css/jquery.minimalect.css" rel="stylesheet" type="text/css" />
+<link href="css/projectManage.css" rel="stylesheet" type="text/css" />
+<script type="text/javascript" src="js/jquery-2.2.4.js"></script>
+<script type="text/javascript" src="js/ajaxfileupload.js"></script>
+<script type="text/javascript" src="js/bootstrap/bootstrap.js"></script>
+<script type="text/javascript" src="js/handlebars-v2.0.0.js"></script>
+<script type="text/javascript" src="js/ajaxRequest.js"></script>
+<script type="text/javascript"
+	src="ajaxRequest/projectCommentRequest.js"></script>
+<script type="text/javascript" src="ajaxRequest/projectRequest.js"></script>
+<script type="text/javascript" src="js/headerExtend.js"></script>
+<script type="text/javascript" src="js/projectManagement.js"></script>
+<script type="text/javascript" src="js/userManagement.js"></script>
+<script type="text/javascript" src="js/modulesManagement.js"></script>
+<script type="text/javascript"
+	src="ajaxRequest/projectCommentRequest.js"></script>
+<script type="text/javascript" src="js/handlebars-common.js"></script>
+<script type="text/javascript"
+	src="<%=request.getContextPath()%>/js/common.js"></script>
+<script type="text/javascript" src="js/headerExtend.js"></script>
+<script type="text/javascript" src="js/superManager.js"></script>
+<script type="text/javascript" src="js/jquery.minimalect.js"></script>
+<script type="text/x-handlebars-template"
+	id="template-product-list-view">
+{{#if products}}
+	{{#each products}}
+		{{#isFirst @index}}
+			<li class="selected"value='{{productId}}' data-productNm='{{productNm}}'>{{productNm}}</li>
+        {{else}}
+			<li value='{{productId}}' data-productNm='{{productNm}}'>{{productNm}}</li>
+		{{/isFirst}}
+	{{/each}}
+{{/if}}
+</script>
+<script type="text/x-handlebars-template"
+	id="template-userManage-list-view">
+{{#if userList}}
+	{{#each userList}}
+		<div class='userList-line'>
+			<div class='userList-userNm'>
+				<div class='userList-userDiv'>
+					<input type='text' readonly style='margin-left:5%;' data-id='{{id}}' data-account='{{user.account}}' value ='{{user.name}}{{user.account}}'>
+				</div>
+			</div>
+			<div class='userList-userRole'>
+				<div class='userList-userDiv'>
+					<select class='userList-select' data-roleId='{{role.id}}'>
+					{{#compare role.name '==' 'UE'}}
+						<option selected value='1'>UE</option>
+						<option value='2'>SA</option>
+					{{else}}
+						<option value='1'>UE</option>
+						<option selected value='2'>SA</option>
+					{{/compare}}
+					</select>
+				</div>
+			</div>
+			<div class='userList-userOperate'>
+				<div class='td-div-other delete'>
+					<div class='delete-img'></div>
+					<font class='td-font'>删除</font>
+					<div class='msg-div' style='display:none'>
+						<span class='span-left'>删除</span>
+						<div class='div-center'></div>
+						<span class='span-right'>取消</span>
+					</div>
+				</div>
+			</div>
+		</div>
+	{{/each}}
+{{/if}}
+</script>
+<script type="text/x-handlebars-template"
+	id="template-addUserManage-view">
+<div class='userList-line'>
+	<div class='userList-userNm'>
+		<div class='userList-userDiv'>
+			<input type='text' data-id='' data-account='' class='addUserName' style='margin-left:5%;' value =''>
+			<div class='searchList' style='display:none'></div>
+		</div>
+	</div>
+	<div class='userList-userRole'>
+		<div class='userList-userDiv'>
+			<select class='userList-select'>
+				<option selected value='1'>UE</option>
+				<option value='2'>SA</option>
+			</select>
+		</div>
+	</div>
+	<div class='userList-userOperate'>
+		<div class='td-div-other delete'>
+			<div class='delete-img'></div>
+			<font class='td-font'>删除</font>
+			<div class='msg-div' style='display:none'>
+				<span class='span-left'>删除</span>
+				<div class='div-center'></div>
+				<span class='span-right'>取消</span>
+			</div>
+		</div>
+	</div>
+</div>
+</script>
+<script type="text/x-handlebars-template"
+	id="template-projectManage-list-view">
+{{#if projectList}}
+	{{#each projectList}}
+		<div class='projectList-line' data-code='{{projectCode}}' data-productId='{{productId}}'>
+			<div class='projectList-projectNm edit'>{{projectName}}</div>
+			<div class='projectList-projectStyle'>{{projectStyleName}}</div>
+			<div class='projectList-projectVer'>{{productName}}</div>
+		{{#compare projectPageCount '!=' null}}
+			<div class='projectList-projectPageNum'>{{projectPageCount}}</div>
+		{{else}}
+			<div class='projectList-projectPageNum'>0</div>
+		{{/compare}}
+		{{#compare createBy '!=' ''}}
+			<div class='projectList-projectCreateBy'>{{createName}}{{createBy}}</div>
+		{{else}}
+			<div class='projectList-projectCreateBy'>&nbsp;</div>
+		{{/compare}}
+			<div class='projectList-projectCreateTime'>{{createTime}}</div>
+			<div class='projectList-projectOperate'>
+				<div class='td-div-other delete'>
+					<div class='delete-img'></div>
+					<font class='td-font'>删除</font>
+					<div class='msg-div' style='display:none'>
+						<span class='span-left'>删除</span>
+						<div class='div-center'></div>
+						<span class='span-right'>取消</span>
+					</div>
+				</div>
+		{{#compare isShare '==' 'TRUE'}}
+				<div class='td-div-other cancelShare'>
+					<div class='cancelShare-img'></div>
+					<font class='td-font' style='color:#ff8000'>取消分享</font>
+					<div class='msg-div' style='display:none'>
+						<span class='span-left'>取消分享</span>
+						<div class='div-center'></div>
+						<span class='span-right'>取消</span>
+					</div>
+				</div>
+			{{#compare perfectFlg '==' 'TRUE'}}
+				<div class='td-div-other cancelPerfect'>
+					<div class='cancelPerfect-img'></div>
+					<font class='td-font' style='color:#ff8000'>取消精选</font>
+					<div class='msg-div' style='display:none'>
+						<span class='span-left'>取消精选</span>
+						<div class='div-center'></div>
+						<span class='span-right'>取消</span>
+					</div>
+				</div>
+			{{else}}
+				<div class='td-div-other setPerfect'>
+					<div class='setPerfect-img'></div>
+					<font class='td-font' style='color:#ff8000'>设为精选</font>
+					<div class='msg-div' style='display:none'>
+						<span class='span-left'>设为精选</span>
+						<div class='div-center'></div>
+						<span class='span-right'>取消</span>
+					</div>
+				</div>
+			{{/compare}}
+		{{else}}
+				<div class='td-div-other share'>
+					<div class='share-img'></div>
+					<font class='td-font' style='color:#ff8000'>分享</font>
+					<div class='shareBox' style='display:none'>
+						<div class='title'>
+							<div class='caret'></div>
+							<span>分享</span>
+							<button class='closeImg'></button>
+						</div>
+						<div class='body'>
+							<div style='margin-top: 10px;'>
+								<div class='inputName'>分享名称:</div>
+								<input class='inputText' value='{{projectName}}'>
+							</div>
+							<div style='margin-top: 10px;'>
+								<div class='inputName'>分享标签:</div>
+								<input class='inputText' placeholder='添加一个标签'>
+								<button class='addBtn'>添加</button>
+							</div>
+							<div class='tagList'></div>
+						</div>
+						<div class='footer'>分享项目</div>
+					</div>
+				</div>
+		{{/compare}}
+			</div>
+		</div>
+	{{/each}}
+{{/if}}
+</script>
+<script type="text/x-handlebars-template" id="template-productVer-list-view">
+{{#if productVerList}}
+	{{#each productVerList}}
+		<div class="productVerList-line" data-productVerId="{{productVerId}}" data-productVer="{{productVer}}">
+			<div class="productVerList-productVerNm">{{product.productNm}}</div>
+			<div class="productVerList-productVerNo">{{productVer}}</div>
+			<div class="productVerList-updateTime">{{dateInfo}}&nbsp;&nbsp;{{timeInfo}}</div>
+			<div class="productVerList-versionLog">
+				<div class="resourcesViewFont versionLog">查看</div>
+			</div>
+			<div class="productVerList-modulesResources">
+				<div class="resourcesViewFont modules">查看</div>
+			</div>
+			<div class="productVerList-iconResources">
+				<div class="resourcesViewFont icon">查看</div>
+			</div>
+			<div class="productVerList-randomResources">
+				<div class="resourcesViewFont random">查看</div>
+			</div>
+			<div class="productVerList-productVerOperate">
+				<div class="operate-import">
+					<div class="importIcon"></div>
+					<div class="importFont">导入</div>
+				</div>
+			{{#compare isEffective '==' '1'}}
+				<div class="operate-isUse">
+					<div class="isUseIcon"></div>
+					<div class="isUseFont">已启用</div>
+				</div>
+			{{else}}
+				<div class="operate-startUse">
+					<div class="startUseIcon"></div>
+					<div class="startUseFont">启用</div>
+					<div class="operate-msg-div" style="display: none;">
+						<span class="span-left">启用</span>
+						<div class="div-center"></div>
+						<span class="span-right">取消</span>
+					</div>
+				</div>
+			{{/compare}}
+			</div>
+		</div>
+	{{/each}}
+{{/if}}
+</script>
+<script type="text/x-handlebars-template" id="template-addProductVer-view">
+<div class="modal-content" style="width: 700px; margin-top: 100px; margin-left: auto; margin-right: auto; background: rgb(255,255,255);">
+<div class="dialog-header">
+	<div class="dialog-title">添加版本</div>
+	<div class="dialog-close" data-dismiss="modal" aria-hidden="true"></div>
+</div>
+<div class="dialog-body">
+	<div class="step">
+		<div class="step-circle active"></div>
+		<div class="step-line"></div>
+		<div class="step-circle"></div>
+		<div class="step-line"></div>
+		<div class="step-circle"></div>
+		<div class="step-line"></div>
+		<div class="step-circle"></div>
+	</div>
+	<div class="stepName">
+		<div class="name active">输入版本信息</div>
+		<div class="name">导入组件包</div>
+		<div class="name">导入图标库</div>
+		<div class="name">完成</div>
+	</div>
+	<div class="versionInfo">
+		<div class="lableName">版本号：</div>
+		<div class="lableInfo">
+			<div class="versionInput">
+				<input type="text" maxlength="15"/>
+			</div>
+			<div class="versionMsg"></div>
+			<div class="explanation">＊小版本升级：组件bug修改、组件样式变更（含结构微调）、新增组件、<br/>&nbsp;&nbsp;&nbsp;组件下线等，版本号增加0.01。<br/>&nbsp;&nbsp;&nbsp;大版本升级：组件结构变化较大不可自动升级的，版本号增加0.1。</div>
+		</div>
+	</div>
+	<div class="updateLogInfo">
+		<div class="lableName">升级日志：</div>
+		<div class="lableInfo">
+			<textarea rows="" cols="" class="logContent"></textarea>
+		</div>
+	</div>
+	<div class="importInfo componentPackage">
+		<div class="lableName">组件包：</div>
+		<div class="lableInfo">
+			<div class="fileUrl"></div>
+			<div class="importBtn">
+				<div class="importBtnPoint"></div>
+				<div class="importBtnPoint"></div>
+				<div class="importBtnPoint"></div>
+			</div>
+			<input type="file" name="modulePackage" class="file" id="modulePackage"/>
+			<div class="progressDiv">
+				<div class="progressImg"></div>
+				<div class="progressNum"></div>
+			</div>
+			<div class="importMsg">
+				<div class="importMsgIcon-right"></div>
+				<div class="importMsgIcon-error"></div>
+				<div class="importMsgFont"></div>
+			</div>
+		</div>
+	</div>
+	<div class="importInfo iconPackage">
+		<div class="lableName">图标库：</div>
+		<div class="lableInfo">
+			<div class="fileUrl"></div>
+			<div class="importBtn">
+				<div class="importBtnPoint"></div>
+				<div class="importBtnPoint"></div>
+				<div class="importBtnPoint"></div>
+			</div>
+			<input type="file" name="iconPackage" class="file" id="iconPackage"/>
+			<div class="progressDiv">
+				<div class="progressImg"></div>
+				<div class="progressNum"></div>
+			</div>
+			<div class="importMsg">
+				<div class="importMsgIcon-right"></div>
+				<div class="importMsgIcon-error"></div>
+				<div class="importMsgFont"></div>
+			</div>
+		</div>
+	</div>
+	<div class="completeInfo">
+		<div class="completeMsg"></div>
+		<div class="progressDiv">
+			<div class="progressImg"></div>
+			<div class="progressNum"></div>
+		</div>
+	</div>
+	<div class="stepBtnList">
+		<div class="btnPrevious stepBtn">上一步</div>
+		<div class="btnNext stepBtn firstStep disabled">下一步</div>
+		<div class="btnSub stepBtn" data-dismiss="modal" aria-hidden="true">确定</div>
+	</div>
+</div>
+</div>
+</script>
+<script type="text/x-handlebars-template" id="template-versionLogDialog-view">
+<div class="modal-content" style="width: 488px;height: 376px;margin: 200px auto;background: rgb(255,255,255);">
+<div class="dialog-header">
+	<div class="dialog-title">升级日志</div>
+	<div class="dialog-close" data-dismiss="modal" aria-hidden="true"></div>
+</div>
+<div class="dialog-body">
+	<div class="versionLogTitle">
+		<div class="versionNo">{{productNm}}  {{productVer}}</div>
+		<div class="updateTime">{{updateTime}}</div>
+	</div>
+	<pre class="versionLog">{{versionLog}}</pre>
+</div>
+</div>
+</script>
+<script type="text/x-handlebars-template" id="template-modulesDialog-view">
+<div class="modal-content" style="width: 880px; height: 618px; margin: 100px auto; background: rgb(231,231,231);">
+	<div class="dialog-header" style="border-bottom: none;">
+		<div class="dialog-title">组件资源</div>
+		<div class="input-search modulesSearch">
+			<input id="modulesSearch" style="width: 200px" type="text" placeholder="输入组件名称" value="" />
+			<span id="searchModulesDelete" class="search-delete-img" style="display: none;"></span>
+			<ins id="searchByModulesName"></ins>
+		</div>
+		<div class="dialog-close" data-dismiss="modal" aria-hidden="true"></div>
+	</div>
+	<div class="modules-table">
+		<div class="modulesList-table">
+			<div class="modulesListTitle">
+				<div class="modulesName">
+					<div style="float: left;">组件名称</div>
+					<div class="sort-normal order" style="display: block;"></div>
+					<div class="sort-desc order" style="display: none;"></div>
+					<div class="sort-asc order" style="display: none;"></div>
+				</div>
+				<div class="modulesVer">当前版本</div>
+			</div>
+			<div class="modulesListBody"></div>
+		</div>
+	</div>
+</div>
+</script>
+<script type="text/x-handlebars-template" id="template-modules-list-view">
+{{#if modulesInfo}}
+	{{#each modulesInfo}}
+		<div class="modulesListLine">
+			<div class="modulesName">{{modulesName}}</div>
+			<div class="modulesVer">{{modulesPath}}-{{modulesVer}}</div>
+		</div>
+	{{/each}}
+{{/if}}
+</script>
+<script type="text/x-handlebars-template" id="template-iconDialog-view">
+<div class="modal-content" style="width: 1290px; height: 543px; margin: 100px auto; background: rgb(255,255,255);">
+	<div class="dialog-header" style="border-bottom: none;">
+		<div class="dialog-title">图标资源</div>
+		<div class="dialog-close" data-dismiss="modal" aria-hidden="true"></div>
+		<div class="input-search iconSearch">
+			<input id="iconSearch" style="width: 200px" type="text" placeholder="输入图标名称" value="" />
+			<span id="searchIconDelete" class="search-delete-img" style="display: none;"></span>
+			<ins id="searchByIconName"></ins>
+		</div>
+	</div>
+	<div class="icon-table">
+		<div class="iconListTitle">
+			<div class="iconListTitle-size"></div>
+			<div class="iconListTitle-type"></div>
+		</div>
+		<div class="iconListBody"></div>
+	</div>
+</div>
+</script>
+<script type="text/x-handlebars-template" id="template-randomDialog-view">
+<div class="modal-content" style="width: 1148px; height: 514px; margin: 100px auto; background: rgb(255,255,255);">
+	<div class="dialog-header" style="border-bottom: none;">
+		<div class="dialog-title">随机资源</div>
+		<div class="dialog-close" data-dismiss="modal" aria-hidden="true"></div>
+	</div>
+	<div class="random-table">
+		<div class="random-title">
+			<div class="randomType active" data-type="text">随机文本</div>
+		</div>
+		<div class="randomTextType"></div>
+		<div class="randomTextContent"></div>
+	</div>
+</div>
+</script>
+<script type="text/x-handlebars-template" id="template-productManager-list-view">
+{{#if productManagers}}
+	{{#each productManagers}}
+		<div class="productManager-line" data-account="{{user.account}}">
+			<div class="col-xs-3 col-sm-3 col-md-3">
+				<input type="text" readonly="true" data-account="{{user.account}}" class="user-txt" value ="{{user.name}}{{user.account}}">
+			</div>
+            <div class="col-xs-2 col-sm-2 col-md-2">{{roleName}}</div>
+			<div class="col-xs-5 col-sm-5 col-md-5">
+			<div class="producteList-Div">
+				<input type="text" readonly="true" class="product-txt" data-productIds="{{#if products}}{{#each products}}{{#if @index}},{{this.productId}}{{ else}}{{this.productId}}{{/if}}{{/each}}{{/if}}" class="product-txt"  value ="{{#if products}}{{#each products}}{{#if @index}}，{{this.productNm}}{{ else}}{{this.productNm}}{{/if}}{{/each}}{{/if}}">
+            	<div class="productsearchList" style='display:none'></div>
+			</div>		
+           </div>
+             <div class="col-xs-2 col-sm-2 col-md-2">
+                 <div class="td-div-other delete">
+             		<div class="delete-img"></div>
+             		<font class="td-font delete-txt">删除</font>
+             		<div class="msg-div" style="display:none">
+                 		<span class="span-left">删除</span>
+                 		<div class="div-center"></div>
+                 		<span class="span-right">取消</span>
+             		</div>
+           		</div>
+			</div>
+		</div>
+	{{/each}}
+{{/if}}
+</script>
+<script type="text/x-handlebars-template"
+	id="template-add-product-list-view">
+	<div class="productList">
+		<ul>
+	{{#if  products}}
+			{{#each products}}
+
+			<li class="product-checkbox">
+				<input type="checkbox" class="product-txt" data-productId="{{productId}}" id="{{productId}}">&nbsp;<font>{{productNm}}</font>
+			</li>
+
+			{{/each}}
+	{{/if}}
+		</ul>
+	</div>
+	<div class="confirm-div">	
+		<span  class="spanOk"><font>确定</font></span> <span  class="spanCannel">	<font>取消</font>	</span>
+	</div>
+</script>
+<script type="text/x-handlebars-template" id="template-product-user-list-view">
+	<div>
+	{{#if  users}}
+		{{#each users}}
+		<div class="productUserItem" data-account="{{account}}">{{name}} {{account}}&nbsp;&nbsp;&nbsp;&nbsp;{{dept}}</div>
+		{{/each}}
+	{{/if}}
+	</div>
+</script>
+</head>
+<body>
+	<div class="modal fade" id="myModal" tabindex="-1" role="dialog"
+		aria-labelledby="myModalLabel" aria-hidden="true"">
+		<div class="modal-dialog"
+			style="width: 500px; height: 300px; margin: 0 auto;">
+			<div class="modal-content"
+				style="width: 94%; height: 88%; margin: 100px auto 0; background: #efefee;">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal"
+						aria-hidden="true">&times;</button>
+					<h4 class="modal-title" id="myModalLabel-project"
+						style="font-weight: bold; padding-left: 14px;">提示</h4>
+				</div>
+				<div class="modal-body" id="message"
+					style="font-size: 20px; height: 200px; text-align: center; line-height: 150px;"></div>
+			</div>
+		</div>
+	</div>
+	<a href="#homePage" class="backTop" ondragstart="return false" title="回到顶部"></a>
+	<div class="homePage " id="homePage">
+		<header class="pageHeader ">
+		<div class="header mainHeader">
+			<jsp:include page="headerExtendCommon.jsp" flush="true" />
+			<a class="logo indexLogoHover" href="" ondragstart="return false" style="cursor: pointor; ">
+			</a>
+			<div style="font-size:16px;font-weight:bold;margin-top:-22px;color: #3a3e55;">管理中心</div>
+			<div class="uilego-container" style="top: 30px;">
+				<div class="row" id="productList" style="display: none;">
+					<p class="a2">产品版本：</p>
+					<div class="a3">
+						<input class="dropListInput" readonly><ul id="productKey"></ul>
+					</div>
+				</div>
+				<div class="row" id="superManagerProductList" style="display: none;">
+					<p class="a2">产品版本：</p>
+					<div class="a3" style="cursor: not-allowed;">
+						<input class="dropListInput" readonly disabled value="All"
+							style="cursor: not-allowed;">
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="btn-group btn-function-type btn-group-underline"
+			style="width: calc(96% - 900px); top: 40px; z-index: 100; margin-left: 450px; margin-right: 450px;"
+			role="group" aria-label="">
+			<div id="tab-group" class="btn-group " role="group"
+				style="float: none;">
+				<a href="#" id="userTab" data-divID="userDiv" role="button" ondragstart="return false"
+					class="btn btn-default btn-underline user-control"
+					style="display: none;"> <img
+					src="<%=request.getContextPath()%>/images/manage/user_control.png"
+					style="width: 30px;" />
+					<div
+						style="float: right; height: 30px; line-height: 30px; color: #3a3e55;">产品用户管理</div>
+				</a> <a href="#" id="modulesTab" data-divID="modulesDiv" role="button" ondragstart="return false"
+					class="btn btn-default btn-underline user-control"
+					style="display: none;"> <img
+					src="<%=request.getContextPath()%>/images/manage/set_control.png"
+					style="width: 30px;" />
+					<div
+						style="float: right; height: 30px; line-height: 30px; color: #3a3e55;">资源管理</div>
+				</a> <a href="#" id="projectTab" data-divID="projectDiv" role="button" ondragstart="return false"
+					class="btn btn-default btn-underline user-control"
+					style="display: none;"> <img
+					src="<%=request.getContextPath()%>/images/manage/project_control.png"
+					style="width: 30px;" />
+					<div
+						style="float: right; height: 30px; line-height: 30px; color: #3a3e55;">项目管理</div>
+				</a> <a href="#" id="superTab" data-divID="superManageDiv" role="button" ondragstart="return false"
+					class="btn btn-default btn-underline user-control"
+					style="display: none;"> <img
+					src="<%=request.getContextPath()%>/images/manage/user_control.png"
+					style="width: 30px;" />
+					<div
+						style="float: right; height: 30px; line-height: 30px; color: #3a3e55;">产品管理员</div>
+				</a>
+			</div>
+		</div>
+		</header>
+		<div id="superManageDiv" class="body-uilego" style="display: none;">
+			<div class="body-container">
+				<div class=" body-container-header">
+					<div class="right">
+						<a id="addUserdiv" href="#" role="button" ondragstart="return false"
+							class="btn btn-default btn-sm btn-uilego">添加用户</a>
+					</div>
+				</div>
+				<div class="uilegeo-table-container">
+					<div class="uilegeo-sort-table">
+						<div id="productManager-title" class="productManager-title">
+							<div class="col-xs-2 col-sm-2 col-md-2  sort-column">
+								<span style="display: none;" name="account">normal</span>
+								<div style="float: left;">用户名</div>
+								<div data-bind="user.account" class="sort" style="display: block;"></div>
+							</div>
+							<div class="col-xs-2 col-sm-2 col-md-2 ">
+								<div style="float: left;">角色</div>
+							</div>
+							<div class="col-xs-6 col-sm-6 col-md-6 " style="">
+								<div style="float: left;">版本管理范围</div>
+							</div>
+							<div class="col-xs-2 col-sm-2 col-md-2 ">操作</div>
+						</div>
+						<!-- 追加产品线管理员行 -->
+						<div class="add-productManager-line productManager-line" data-account="" style="display: none">
+							<div class="col-xs-3 col-sm-3 col-md-3 productManager-userDiv">
+							   <input type="text"  data-account="" class="user-txt addUserName-input" style="position: relative;"/>
+							   <div class="col-xs-3 col-sm-3 col-md-3 addProductUserList"></div>
+							</div>
+							<div class="col-xs-2 col-sm-2 col-md-2 role-name"> </div>
+							<div class="col-xs-5 col-sm-5 col-md-5">
+								<div class="producteList-Div">
+									<input type="text" readonly="true" data-productIds="" class="product-txt" value="">
+										<div class="productsearchList" style='display: none'></div>
+								</div>
+							</div>
+							<div class="col-xs-2 col-sm-2 col-md-2">
+								<div class="td-div-other delete">
+									<div class="delete-img"></div>
+									<font class="td-font">删除</font>
+									<div class="msg-div" style="display: none">
+										<span class="span-left">删除</span>
+										<div class="div-center"></div>
+										<span class="span-right">取消</span>
+									</div>
+								</div>
+							</div>
+						</div>
+						<!-- 产品线管理员列表 -->
+						<div id="productManagers" class="productManager-body"></div>
+					</div>
+
+				</div>
+			</div>
+		</div>
+		<div id="userDiv" class="body-uilego" style="display: none;">
+			<div class="body-container">
+				<div class=" body-container-header">
+					<div class="input-search left" style="width: 260px">
+						<input id="searchUserText" style="width: 260px" type="text"
+							placeholder="输入姓名/工号检索"> <span id="searchUserDelete"
+							class="search-delete-img" style="display: none;"></span> <ins
+								id="btn-searchByUser"></ins>
+					</div>
+					<div class="right">
+						<a id="addUserManage" href="#" role="button" ondragstart="return false"
+							class="btn btn-default btn-sm btn-uilego right-btn">添加用户</a>
+					</div>
+				</div>
+				<div class="uilegeo-table-container">
+					<div class="uilegeo-sort-table" style="font-size: 10px;">
+						<div id="userList-title" class="userList-title">
+							<div class="userList-userNm order" style="cursor: pointer">
+								<span style="display: none;" name="account">normal</span>
+								<div style="float: left;">用户名</div>
+								<div class="sort-normal" style="display: block;"></div>
+								<div class="sort-desc" style="display: none;"></div>
+								<div class="sort-asc" style="display: none;"></div>
+							</div>
+							<div class="userList-userRole order" style="cursor: pointer">
+								<span style="display: none;" name="role">normal</span>
+								<div style="float: left;">角色</div>
+								<div class="sort-normal" style="display: block;"></div>
+								<div class="sort-desc" style="display: none;"></div>
+								<div class="sort-asc" style="display: none;"></div>
+							</div>
+							<div class="userList-userOperate">操作</div>
+						</div>
+						<div id="userManageList" class="userList-body"></div>
+					</div>
+
+				</div>
+			</div>
+		</div>
+		<div id="modulesDiv" class="body-uilego" style="display: none;">
+			<div class="body-container">
+				<div class=" body-container-header">
+					<div class="right" style="margin-right: -10px;">
+						<a id="addProductVer" href="#" role="button" ondragstart="return false" class="btn btn-default btn-uilego right-btn">添加版本</a>
+					</div>
+				</div>
+				<!-- 主页面 -->
+				<div class="uilegeo-table-container">
+					<div class="uilegeo-sort-table">
+						<div id="productVerList-title" class="productVerList-title" style="font-size: 14px;">
+							<div class="productVerList-productVerNm">版本名称</div>
+							<div class="productVerList-productVerNo">版本号</div>
+							<div class="productVerList-updateTime">更新时间</div>
+							<div class="productVerList-versionLog">升级日志</div>
+							<div class="productVerList-modulesResources">组件资源</div>
+							<div class="productVerList-iconResources">图标资源</div>
+							<div class="productVerList-randomResources">随机资源</div>
+							<div class="productVerList-productVerOperate">操作</div>
+						</div>
+						<div id="productVerList" class="productVerList-body" style="font-size: 12px;"></div>
+					</div>
+				</div>
+				<!-- 添加版本dialog -->
+				<div class="modal fade" id="addProductVerModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+					<div class="modal-dialog" style="width: 100%;"></div>
+				</div>
+				<!-- 版本更新组件导入dialog -->
+				<div class="modal fade" id="importModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+					<div class="modal-dialog" style="width: 100%;"></div>
+				</div>
+				<!-- 升级日志dialog -->
+				<div class="modal fade" id="versionLogModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+					<div class="modal-dialog" style="width: 100%;"></div>
+				</div>
+				<!-- 组件资源dialog -->
+				<div class="modal fade" id="modulesModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+					<div class="modal-dialog" style="width: 100%;"></div>
+				</div>
+				<!-- 图标资源dialog -->
+				<div class="modal fade" id="iconModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+					<div class="modal-dialog" style="width: 100%;"></div>
+				</div>
+				<!-- 随即资源dialog -->
+				<div class="modal fade" id="randomModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+					<div class="modal-dialog" style="width: 100%;"></div>
+				</div>
+			</div>
+		</div>
+		<div id="projectDiv" class="body-uilego" style="display: none;">
+			<div class="body-container">
+				<div class=" body-container-header">
+					<div class="input-search" style="width: 260px">
+						<input id="search-text" type="text" placeholder="输入项目名称或创建人检索"
+							style="width: 260px"> <span id="searchProjectDelete"
+							class="search-delete-img" style="display: none;"></span> <ins
+								id="btn-search"></ins>
+					</div>
+					<div class="projectType-group">
+						<div class="projectType projectType-active" data-type="all"
+							style="border-top-left-radius: 30px; border-bottom-left-radius: 30px; border-right: 1px solid #FFF;">
+							<font>ALL(<font id="All"></font>)
+							</font>
+						</div>
+						<div class="projectType" data-type="noShare"
+							style="border-left: 1px solid #FFF; border-right: 1px solid #FFF;">
+							<font>未分享项目(<font id="NoShare"></font>)
+							</font>
+						</div>
+						<div class="projectType" data-type="isShare"
+							style="border-top-right-radius: 30px; border-bottom-right-radius: 30px; border-left: 1px solid #FFF;">
+							<font>分享案例(<font id="IsShare"></font>)
+							</font>
+						</div>
+					</div>
+				</div>
+				<div class="uilegeo-table-container">
+					<div class="uilegeo-sort-table" style="font-size: 10px;">
+						<div id="projectList-title" class="projectList-title">
+							<div class="projectList-projectNm order" style="cursor: pointer">
+								<span style="display: none;" name="name">normal</span>
+								<div style="float: left; color: #333;">项目名称</div>
+								<div class="sort-normal" style="display: block;"></div>
+								<div class="sort-desc" style="display: none;"></div>
+								<div class="sort-asc" style="display: none;"></div>
+							</div>
+							<div class="projectList-projectStyle">体验架构</div>
+							<div class="projectList-projectVer">产品版本</div>
+							<div class="projectList-projectPageNum order"
+								style="cursor: pointer">
+								<span style="display: none;" name="pageNum">normal</span>
+								<div style="float: left;">页面数量</div>
+								<div class="sort-normal" style="display: block;"></div>
+								<div class="sort-desc" style="display: none;"></div>
+								<div class="sort-asc" style="display: none;"></div>
+							</div>
+							<div class="projectList-projectCreateBy order"
+								style="cursor: pointer">
+								<span style="display: none;" name="createBy">normal</span>
+								<div style="float: left;">创建者</div>
+								<div class="sort-normal" style="display: block;"></div>
+								<div class="sort-desc" style="display: none;"></div>
+								<div class="sort-asc" style="display: none;"></div>
+							</div>
+							<div class="projectList-projectCreateTime order"
+								style="cursor: pointer">
+								<span style="display: none;" name="createTime">normal</span>
+								<div style="float: left;">创建时间</div>
+								<div class="sort-normal" style="display: block;"></div>
+								<div class="sort-desc" style="display: none;"></div>
+								<div class="sort-asc" style="display: none;"></div>
+							</div>
+							<div class="projectList-projectOperate">操作</div>
+						</div>
+						<div id="projectList" class="projectList-body"></div>
+					</div>
+
+				</div>
+			</div>
+		</div>
+	</div>
+
+</body>
+<script type="text/javascript">
+	var superManager = null;
+	var USER = userInfoRequest.getUserInfo();
+	var $mainHeader = $(".pageHeader .mainHeader");
+	var headerExtend = new HeaderExtend($mainHeader, "home", USER);
+	var productId = null;
+	var productNm = null;
+	$(function() {
+		$(document).find(".logo").attr("href",
+				"home!show.action?timestamp=" + (new Date()).valueOf());
+		var $mainHeader = $(".pageHeader .mainHeader");
+		var headerExtend = new HeaderExtend($mainHeader, "home", USER);
+		if (USER.previlege.indexOf("productManage") > -1) {
+			if (USER.previlege.indexOf("superManage") > -1) {
+				$("#superTab").show();
+				superManager = new SuperManager();
+				superManager.init();
+			}
+			initProductList();
+			$("#productList").show();
+			$("#userTab").show();
+			$("#modulesTab").show();
+			$("#projectTab").show();
+			$("#userTab").addClass("active");
+			$("#userDiv").css("display", "block");
+			new UserManage();
+		} else {
+			$("#superManagerProductList").show();
+			$("#superTab").show();
+			$("#superTab").addClass("active");
+			$("#superManageDiv").css("display", "block");
+			superManager = new SuperManager();
+			superManager.init();
+		}
+		// 
+		$("#statisticalCenter").on("click", function() {
+			gotoStatisticalCenter();
+		});
+
+		// 当点击画面空白处或滚动滚动条时，隐藏统计栏
+		headerExtend.addStatisticsEvent();
+	});
+
+	//初始化产品版本列表
+	function initProductList() {
+		var productList = null;
+		$.ajax({
+			type : "GET",
+			url : root + "/userRoleManage!getProductList.action",
+			async : false,
+			dataType : 'json',
+			success : function(result) {
+				productList = result.data;
+			}
+		});
+		createProductList(productList);
+	}
+
+	//创建产品版本列表
+	function createProductList(productList) {
+		var that = this;
+		productId = productList[0].productId;
+		productNm = productList[0].productNm;
+		$("#productList").find(".dropListInput").val(productList[0].productNm);
+		var html = Handlebars.templates.productList({
+			products : productList
+		});
+		$("#productKey").html(html);
+		$("#productKey").siblings("input").val(
+				$("#productKey").children(".selected").text());
+		$("#userManageList").html("");
+	}
+
+	$(".user-control").unbind("click").bind('click', function(e) {
+		if ($(this).hasClass('active')) {
+			return;
+		} else {
+			$(this).closest(".btn-group").find(".btn").removeClass('active');
+			$(this).addClass('active');
+			var id = $(this).attr("data-divID");
+			$($(".body-uilego")).each(function(index, value) {
+				$("#" + value.id).css("display", "none");
+			});
+			if (id == "userDiv") {
+				$("#superManagerProductList").hide();
+				$("#productList").show();
+				$("#userDiv").css("display", "block");
+				new UserManage();
+			}
+			if (id == "modulesDiv") {
+				$("#modulesDiv").css("display", "block");
+				new ModulesManage();
+			}
+			if (id == "projectDiv") {
+				$("#superManagerProductList").hide();
+				$("#productList").show();
+				$("#projectDiv").css("display", "block");
+				new ProjectManage();
+			}
+			if (id == "superManageDiv") {
+				$("#superManagerProductList").show();
+				$("#productList").hide();
+				$(".add-productManager-line").hide();
+				$("#superManageDiv").css("display", "block");
+				superManager.reset();
+			}
+		}
+	});
+	
+	$(document).unbind("click").bind("click",function(e){
+		if ($(e.target).closest(".a3").length == 0) {
+			$("#productKey").hide();
+			$("#productKey").closest(".a3").removeClass("active");
+		}
+	});
+</script>
+</html>
