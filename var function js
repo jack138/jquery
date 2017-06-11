@@ -1,0 +1,108 @@
+var demoModule=function(){
+	this._settings = {
+		   pageCount:10,
+		   display:5
+		}
+	this.init();
+}	
+demoModule.prototype = {
+		init : function() {
+			var that = this;
+			that.initProductList();
+			that.bindEvents();
+			$('#gdp-content-main').html('');
+			$('#gdp-content-main').load('html/authorityManagement.html');
+		},
+		//初始化这个用户的产品信息
+		initProductList:function(){
+			$.ajax({
+			    url:'/'+root+'/getUserProductList',
+			    type:'GET',
+			    async:false,
+			    data:{
+			    },
+			    timeout:5000,
+			    dataType:'json',   
+			    success:function(data){
+			    	$('.dropdown-menu1').html('');
+			    	var productHtml='';
+			    	data.forEach(function(value,index){
+			    		productHtml += '<li class="dropdown-menu-li"><a href="#" productId="'+value.productId+'">'+ value.productName+'</a></li>';
+			    	});
+			    	$('.dropdown-menu1').html(productHtml);
+			    	
+			    	if(data.length>0){
+			    		window.productId=data[0].productId;
+			    	}else{
+			    		window.productId=null;
+			    	}
+			    }
+			})
+		},
+		bindEvents : function(){
+			var that = this;
+			$('.gdp-navigation-foldarea-ul1 .li1').unbind('click').bind('click',function(){
+				if($(this).find('.gdp-navigation-foldarea-ul2').css('display') == 'none'){
+					$(this).siblings().find('.gdp-navigation-foldarea-ul2').hide();
+					$(this).siblings().addClass('li1-norma').removeClass('li1-select');
+					$(this).siblings().find('.li1-lasticon').addClass('glyphicon-menu-down').removeClass('glyphicon-menu-up');
+					$(this).find('.gdp-navigation-foldarea-ul2').show();
+					$(this).find('.li1-lasticon').removeClass('glyphicon-menu-down').addClass('glyphicon-menu-up');
+					$(this).find('.li1-lasticon').removeClass('glyphicon-menu-down').addClass('glyphicon-menu-up');
+					$(this).removeClass('li1-norma').addClass('li1-select');
+					$(this).find('.li1-firsticon').addClass('li1-firsticon-select');
+				}else{
+					$(this).find('.gdp-navigation-foldarea-ul2').hide();
+					$(this).addClass('li1-norma').removeClass('li1-select');
+					$(this).find('.li1-lasticon').addClass('glyphicon-menu-down').removeClass('glyphicon-menu-up');
+					$(this).find('.li1-firsticon').removeClass('li1-firsticon-select');
+				}
+			});
+			$('.gdp-navigation-foldarea-ul2 .li2').unbind('click').bind('click',function(event){
+				$('.li2').each(function(index,ele){
+					$(ele).removeClass('li2-click');
+				});
+				$(this).addClass('li2-click');
+				that.gotoPage($(this));
+				event.stopPropagation(); 
+			});
+			
+			//切换左侧产品下拉框
+			$('.dropdown-menu1 .dropdown-menu-li').unbind('click').bind('click',function(event){
+				var value = $(this).find('a').text();
+				$('.product-name').text(value);
+				window.productId = $(this).find('a').attr('productId');
+				if($('.li2-click').length == 0){
+					$('#gdp-content-main').html('');
+					$('#gdp-content-main').load('html/activeAndOnline.html');
+				}else{
+					that.gotoPage($('.li2-click'));
+				}
+			});
+			
+			
+		},
+		//页面跳转
+		gotoPage:function($El){
+			var that = this;
+			if($El.hasClass('base-preview-click')){
+				$('#gdp-content-main').html('');
+				$('#gdp-content-main').load('html/activeAndOnline.html');
+			}else if($El.hasClass('activeconversionrate-click')){
+				$('#gdp-content-main').html('');
+				$('#gdp-content-main').load('html/ActiveConversionRate.html');
+			}else if($El.hasClass('wastagerate-click')){
+				$('#gdp-content-main').html('');
+				$('#gdp-content-main').load('html/wastageRate.html');
+			}else if($El.hasClass('indicatorsDefinition-click')){
+				$('#gdp-content-main').html('');
+				$('#gdp-content-main').load('html/indicatorsDefinition.html');
+			}else if($El.hasClass('active-click')){
+				$('#gdp-content-main').html('');
+				$('#gdp-content-main').load('html/active.html');
+			}else if($El.hasClass('authorityManagement-click')){
+				$('#gdp-content-main').html('');
+				$('#gdp-content-main').load('html/authorityManagement.html');
+			}
+		},
+}
